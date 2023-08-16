@@ -7,10 +7,8 @@ namespace NakamaTank.NakamaMultiplayer;
 /// </summary>
 public class OpCodes
 {
-    public const long VelocityAndPosition = 1;
-    public const long DirectionAndPosition = 2;
-    public const long Input = 3;
-    public const long Scored = 4;
-    public const long Respawned = 5;
-    public const long NewRound = 6;
+    public const long TANK_PACKET = 1;
+    public const long SCORED = 2;
+    public const long RESPAWNED = 3;
+    public const long NEW_ROUND = 4;
 }

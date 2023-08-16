@@ -2,7 +2,7 @@
 
 namespace NakamaTank.NakamaMultiplayer.Players;
 
-class NetworkPlayer : Player
+class RemotePlayer : Player
 {
     internal RemotePlayerNetworkData NetworkData { get; init; }
 }

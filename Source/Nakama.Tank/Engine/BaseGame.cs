@@ -130,7 +130,10 @@ public abstract class BaseGame : Game
            }).CreateSpriteFont(GraphicsDevice);
     }
 
-    protected virtual void OnLoadContent() { }
+    protected virtual void OnLoadContent() 
+    {
+        Resources.TankTexture = Content.Load<Texture2D>("Sprites/tank");
+    }
 
     protected override void Update(GameTime gameTime)
     {

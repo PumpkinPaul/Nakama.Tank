@@ -4,7 +4,6 @@
 //https://github.com/heroiclabs/fishgame-unity/blob/main/FishGame/Assets/Entities/Player/MatchDataJson.cs
 
 using Microsoft.Xna.Framework;
-using Nakama.TinyJson;
 using System.Collections.Generic;
 
 namespace NakamaTank.NakamaMultiplayer.Players;
@@ -15,62 +14,33 @@ public static class MatchDataJson
     /// Creates a network message containing velocity and position.
     /// </summary>
     /// <returns>A JSONified string containing velocity and position data.</returns>
-    public static string VelocityAndPosition(Vector2 velocity, Vector2 position)
+    public static string TankPacket(
+        float totalSeconds,
+        // Send the current state of the tank.
+        Vector2 position,
+        Vector2 velocity,
+        float tankRotation,
+        float turretRotation,
+        // Also send our current inputs. These can be used to more accurately
+        // predict how the tank is likely to move in the future.
+        Vector2 tankInput,
+        Vector2 turretInput)
     {
         var values = new Dictionary<string, string>
         {
+            { "totalSeconds", totalSeconds.ToString() },
+            { "position.x", position.X.ToString() },
+            { "position.y", position.Y.ToString() },
             { "velocity.x", velocity.X.ToString() },
             { "velocity.y", velocity.Y.ToString() },
-            { "position.x", position.X.ToString() },
-            { "position.y", position.Y.ToString() }
+            { "tankRotation", tankRotation.ToString() },
+            { "turretRotation", turretRotation.ToString() },
+            { "tankInput.x", tankInput.X.ToString() },
+            { "tankInput.y", tankInput.Y.ToString() },
+            { "turretInput.x", turretInput.X.ToString() },
+            { "turretInput.y", turretInput.Y.ToString() },
         };
 
         return Newtonsoft.Json.JsonConvert.SerializeObject(values);
-    }
-
-    /// <summary>
-    /// Creates a network message containing direction and position.
-    /// </summary>
-    /// <returns>A JSONified string containing direction and position data.</returns>
-    public static string DirectionAndPosition(float direction, Vector2 position)
-    {
-        var values = new Dictionary<string, string>
-        {
-            { "direction", direction.ToString() },
-            { "position.x", position.X.ToString() },
-            { "position.y", position.Y.ToString() }
-        };
-
-        return Newtonsoft.Json.JsonConvert.SerializeObject(values);
-    }
-
-    /// <summary>
-    /// Creates a network message containing player input.
-    /// </summary>
-    /// <returns>A JSONified string containing player input.</returns>
-    public static string Input(bool moveUp, bool moveDown)
-    {
-        var values = new Dictionary<string, string>
-        {
-            { "moveUp", moveUp.ToString() },
-            { "moveDown", moveDown.ToString() },
-        };
-
-        return values.ToJson();
-    }
-
-    /// <summary>
-    /// Creates a network message containing player scores.
-    /// </summary>
-    /// <returns>A JSONified string containing player scores.</returns>
-    public static string Score(int player1Score, int player2Score)
-    {
-        var values = new Dictionary<string, string>
-        {
-            { "player1.score", player1Score.ToString() },
-            { "player2.score", player2Score.ToString() },
-        };
-
-        return values.ToJson();
     }
 }

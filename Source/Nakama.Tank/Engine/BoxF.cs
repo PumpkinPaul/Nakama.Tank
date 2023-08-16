@@ -143,7 +143,7 @@ public record struct BoxF
         }
     }
 
-    public readonly BoxF Translated(in Vector2 position) => new BoxF(position.X + X, position.Y + Y, Width, Height);
+    public readonly BoxF Translated(in Vector2 position) => new(position.X + X, position.Y + Y, Width, Height);
 
     public readonly Vector2 GetIntersectionDepth(BoxF rectB)
     {

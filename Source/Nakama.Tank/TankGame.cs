@@ -76,13 +76,13 @@ public class TankGame : BaseGame
         if (KeyboardState.IsKeyDown(Keys.Escape) && PreviousKeyboardState.IsKeyUp(Keys.Escape))
             Exit();
 
-        GamePhaseManager.Update();
+        GamePhaseManager.Update(gameTime);
     }
 
     protected override void OnDraw(GameTime gameTime)
     {
         GraphicsDevice.Clear(Color.Black);
 
-        GamePhaseManager.Draw();
+        GamePhaseManager.Draw(gameTime);
     }
 }
