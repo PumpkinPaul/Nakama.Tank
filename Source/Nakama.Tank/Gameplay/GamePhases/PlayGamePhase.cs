@@ -8,6 +8,7 @@ using NakamaTank.Engine.Extensions;
 using NakamaTank.NakamaMultiplayer.Players;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -40,9 +41,6 @@ public class PlayGamePhase : GamePhase
     int _playerSpawnPointsIdx = 0;
     int _bounceDirection = -1;
 
-    const int MAX_GAMERS = 2;
-    const int MAX_LOCAL_GAMERS = 1;
-
     // What kind of network latency and packet loss are we simulating?
     enum NetworkQuality
     {
@@ -51,21 +49,24 @@ public class PlayGamePhase : GamePhase
         Perfect,    // 0 latency, 0% packet loss
     }
 
-    NetworkQuality networkQuality;
+    NetworkQuality _networkQuality;
 
     // How often should we send network packets?
-    int framesBetweenPackets = 6;
+    int _framesBetweenPackets = 6;
 
     // How recently did we send the last network packet?
-    int framesSinceLastSend;
+    int _framesSinceLastSend;
 
     // Is prediction and/or smoothing enabled?
-    bool enablePrediction = true;
-    bool enableSmoothing = true;
+    bool _enablePrediction = true;
+    bool _enableSmoothing = true;
 
     readonly Dictionary<Player, Tank> _tanks = new();
 
     readonly Queue<ReceivedRemotePlayerTankStateEventArgs> _networkState = new();
+
+    //Packet writer to writer all tank state required each tick - 44 bytes currently
+    readonly PacketWriter _packetWriter = new(new MemoryStream(44));
 
     public PlayGamePhase(
         NetworkGameManager networkGameManager)
@@ -100,12 +101,12 @@ public class PlayGamePhase : GamePhase
         // Is it time to send outgoing network packets?
         bool sendPacketThisFrame = false;
 
-        framesSinceLastSend++;
+        _framesSinceLastSend++;
 
-        if (framesSinceLastSend >= framesBetweenPackets)
+        if (_framesSinceLastSend >= _framesBetweenPackets)
         {
             sendPacketThisFrame = true;
-            framesSinceLastSend = 0;
+            _framesSinceLastSend = 0;
         }
 
         var localPlayers = _networkGameManager.Players.Values
@@ -142,11 +143,10 @@ public class PlayGamePhase : GamePhase
 
         // Apply prediction and smoothing to the remotely controlled tanks.
         foreach (var player in remotePlayers)
-            _tanks[player].UpdateRemote(framesBetweenPackets, enablePrediction);
+            _tanks[player].UpdateRemote(_framesBetweenPackets, _enablePrediction);
 
         //Update the latency and packet loss simulation options.
-        //TODO
-        //UpdateOptions();
+        UpdateOptions();
     }
 
     /// <summary>
@@ -168,9 +168,12 @@ public class PlayGamePhase : GamePhase
         // Periodically send our state to everyone in the session.
         if (sendPacketThisFrame)
         {
-            tank.WriteNetworkPacketJson(gameTime, out var packet);
+            //tank.WriteNetworkPacketJson(gameTime, out var packet);
 
-            _networkGameManager.SendMatchState(OpCodes.TANK_PACKET, packet);
+            _packetWriter.Reset();
+            tank.WriteNetworkPacket(gameTime, _packetWriter);
+
+            _networkGameManager.SendMatchState(OpCodes.TANK_PACKET, _packetWriter.GetBuffer());
         }
     }
 
@@ -193,7 +196,7 @@ public class PlayGamePhase : GamePhase
             var latency = TimeSpan.FromSeconds(1 / 20.0f);
 
             // Read the state of this tank from the network packet.
-            tank.ReadNetworkPacketEvent(gameTime, state, latency, enablePrediction, enableSmoothing);
+            tank.ReadNetworkPacketEvent(gameTime, state, latency, _enablePrediction, _enableSmoothing);
         }
     }
 
@@ -245,6 +248,82 @@ public class PlayGamePhase : GamePhase
             turretInput.Normalize();
     }
 
+    /// <summary>
+    /// Updates the latency and packet loss simulation options. Only the
+    /// host can alter these values, which are then synchronized over the
+    /// network by storing them into NetworkSession.SessionProperties. Any
+    /// changes to the SessionProperties data are automatically replicated
+    /// on all the client machines, so there is no need to manually send
+    /// network packets to transmit this data.
+    /// </summary>
+    void UpdateOptions()
+    {
+        if (_networkGameManager.IsHost)
+        {
+            // Change the network quality simultation?
+            if (BaseGame.Instance.IsPressed(Keys.A, Buttons.A))
+            {
+                _networkQuality++;
+
+                if (_networkQuality > NetworkQuality.Perfect)
+                    _networkQuality = 0;
+            }
+
+            // Change the packet send rate?
+            if (BaseGame.Instance.IsPressed(Keys.B, Buttons.B))
+            {
+                if (_framesBetweenPackets == 6)
+                    _framesBetweenPackets = 3;
+                else if (_framesBetweenPackets == 3)
+                    _framesBetweenPackets = 1;
+                else
+                    _framesBetweenPackets = 6;
+            }
+
+            // Toggle prediction on or off?
+            if (BaseGame.Instance.IsPressed(Keys.X, Buttons.X))
+                _enablePrediction = !_enablePrediction;
+
+            // Toggle smoothing on or off?
+            if (BaseGame.Instance.IsPressed(Keys.Z, Buttons.Y))
+                _enableSmoothing = !_enableSmoothing;
+
+            // Stores the latest settings into NetworkSession.SessionProperties.
+            //networkSession.SessionProperties[0] = (int)networkQuality;
+            //networkSession.SessionProperties[1] = framesBetweenPackets;
+            //networkSession.SessionProperties[2] = enablePrediction ? 1 : 0;
+            //networkSession.SessionProperties[3] = enableSmoothing ? 1 : 0;
+        }
+        else
+        {
+            // Client machines read the latest settings from the session properties.
+            //networkQuality = (NetworkQuality)networkSession.SessionProperties[0];
+            //framesBetweenPackets = networkSession.SessionProperties[1].Value;
+            //enablePrediction = networkSession.SessionProperties[2] != 0;
+            //enableSmoothing = networkSession.SessionProperties[3] != 0;
+        }
+
+        // Update the SimulatedLatency and SimulatedPacketLoss properties.
+        switch (_networkQuality)
+        {
+            case NetworkQuality.Typical:
+                //networkSession.SimulatedLatency = TimeSpan.FromMilliseconds(100);
+                //networkSession.SimulatedPacketLoss = 0.1f;
+                break;
+
+            case NetworkQuality.Poor:
+                //networkSession.SimulatedLatency = TimeSpan.FromMilliseconds(200);
+                //networkSession.SimulatedPacketLoss = 0.2f;
+                break;
+
+            case NetworkQuality.Perfect:
+                //networkSession.SimulatedLatency = TimeSpan.Zero;
+                //networkSession.SimulatedPacketLoss = 0;
+                break;
+        }
+    }
+
+
     protected override void OnDraw(GameTime gameTime)
     {
         base.OnDraw(gameTime);
@@ -267,6 +346,9 @@ public class PlayGamePhase : GamePhase
             //Draw the UI
             spriteBatch.BeginTextRendering();
             spriteBatch.DrawText(Resources.SmallFont, "Destroy all opponents!", new Vector2(centreX, BaseGame.SCREEN_HEIGHT - 32), Color.White, Alignment.Centre);
+
+            spriteBatch.DrawText(Resources.SmallFont, "Z Smoothing", new Vector2(20, 8), _enableSmoothing ? Color.White : Color.Gray, Alignment.BottomLeft);
+            spriteBatch.DrawText(Resources.SmallFont, "X Prediction", new Vector2(220, 8), _enablePrediction ? Color.White : Color.Gray, Alignment.BottomLeft);
             spriteBatch.End();
         }
     }
@@ -317,6 +399,6 @@ public class PlayGamePhase : GamePhase
 
     void OnRemovedPlayer(object sender, RemovedPlayerEventArgs e)
     {
-        //_ecsManager.DestroyEntity(e.SessionId);
+        _tanks.Remove(e.Player);
     }
 }

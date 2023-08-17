@@ -48,7 +48,7 @@ public class NakamaConnection
 
         // Connect to the Nakama server.
         Client = new Client(Scheme, Host, Port, ServerKey);
-
+        
         // Attempt to restore an existing user session.
         var authToken = _playerProfile.SessionToken;
         if (!string.IsNullOrEmpty(authToken))

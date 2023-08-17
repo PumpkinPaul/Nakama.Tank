@@ -59,42 +59,42 @@ public class TimeRuler : DrawableGameComponent
     /// <summary>
     /// Max bar count.
     /// </summary>
-    private const int MaxBars = 16;
+    private const int MAX_BARS = 16;
 
     /// <summary>
     /// Maximum sample number for each bar.
     /// </summary>
-    private const int MaxSamples = 2560;
+    private const int MAX_SAMPLES = 2560;
 
     /// <summary>
     /// Maximum nest calls for each bar.
     /// </summary>
-    private const int MaxNestCall = 32;
+    private const int MAX_NEST_CALL = 32;
 
     /// <summary>
     /// Maximum display frames.
     /// </summary>
-    private const int MaxSampleFrames = 4;
+    private const int MAX_SAMPLE_FRAMES = 4;
 
     /// <summary>
     /// Duration (in frame count) for take snap shot of log.
     /// </summary>
-    private const int LogSnapDuration = 120;
+    private const int LOG_SNAP_DURATION = 120;
 
     /// <summary>
     /// Height(in pixels) of bar.
     /// </summary>
-    private const int BarHeight = 8;
+    private const int BAR_HEIGHT = 8;
 
     /// <summary>
     /// Padding(in pixels) of bar.
     /// </summary>
-    private const int BarPadding = 2;
+    private const int BAR_PADDING = 2;
 
     /// <summary>
     /// Delay frame count for auto display frame adjustment.
     /// </summary>
-    private const int AutoAdjustDelay = 30;
+    private const int AUTO_ADJUST_DELAY = 30;
 
     /// <summary>
     /// Gets/Set log display or no.
@@ -109,7 +109,7 @@ public class TimeRuler : DrawableGameComponent
     /// <summary>
     /// Gets/Sets TimeRuler rendering position.
     /// </summary>
-    public Vector2 Position = new Vector2(8, 8);
+    public Vector2 Position = new(8, 8);
 
     /// <summary>
     /// Gets/Sets timer ruler width.
@@ -133,11 +133,11 @@ public class TimeRuler : DrawableGameComponent
     private class MarkerCollection
     {
         // Marker collection.
-        public readonly Marker[] Markers = new Marker[MaxSamples];
+        public readonly Marker[] Markers = new Marker[MAX_SAMPLES];
         public int MarkCount;
 
         // Marker nest information.
-        public readonly int[] MarkerNests = new int[MaxNestCall];
+        public readonly int[] MarkerNests = new int[MAX_NEST_CALL];
         public int NestCount;
     }
 
@@ -151,8 +151,8 @@ public class TimeRuler : DrawableGameComponent
         public FrameLog()
         {
             // Initialize markers.
-            Bars = new MarkerCollection[MaxBars];
-            for (var i = 0; i < MaxBars; ++i)
+            Bars = new MarkerCollection[MAX_BARS];
+            for (var i = 0; i < MAX_BARS; ++i)
                 Bars[i] = new MarkerCollection();
         }
     }
@@ -166,7 +166,7 @@ public class TimeRuler : DrawableGameComponent
         public readonly string Name;
 
         // Marker log.
-        public readonly MarkerLog[] Logs = new MarkerLog[MaxBars];
+        public readonly MarkerLog[] Logs = new MarkerLog[MAX_BARS];
 
         public MarkerInfo(string name)
         {
@@ -208,13 +208,13 @@ public class TimeRuler : DrawableGameComponent
     private int _frameCount;
 
     // Stopwatch for measure the time.
-    private readonly Stopwatch _stopwatch = new Stopwatch();
+    private readonly Stopwatch _stopwatch = new();
 
     // Marker information array.
-    private readonly List<MarkerInfo> _markers = new List<MarkerInfo>();
+    private readonly List<MarkerInfo> _markers = new();
 
     // Dictionary that maps from marker name to marker id.
-    private readonly Dictionary<string, int> _markerNameToIdMap = new Dictionary<string, int>();
+    private readonly Dictionary<string, int> _markerNameToIdMap = new();
 
     // Display frame adjust counter.
     private int _frameAdjust;
@@ -223,7 +223,7 @@ public class TimeRuler : DrawableGameComponent
     private int _sampleFrames;
 
     // Marker log string.
-    private readonly StringBuilder _logString = new StringBuilder(512);
+    private readonly StringBuilder _logString = new(512);
 
     // You want to call StartFrame at beginning of Game.Update method.
     // But Game.Update gets calls multiple time when game runs slow in fixed time step mode.
@@ -233,9 +233,9 @@ public class TimeRuler : DrawableGameComponent
 
     // Auto generating levels
     private int _currentLevel = -1;
-    private readonly Dictionary<string, int> _nameMap = new Dictionary<string, int>();
+    private readonly Dictionary<string, int> _nameMap = new();
 
-    private readonly object _frameLock = new object();
+    private readonly object _frameLock = new();
 
     public TimeRuler(Game game) : base(game) { }
 
@@ -317,12 +317,12 @@ public class TimeRuler : DrawableGameComponent
                 case "frame":
                     var a = int.Parse(subargs[1]);
                     a = Math.Max(a, 1);
-                    a = Math.Min(a, MaxSampleFrames);
+                    a = Math.Min(a, MAX_SAMPLE_FRAMES);
                     TargetSampleFrames = a;
                     break;
                 case "levels":
                     var l = int.Parse(subargs[1]);
-                    l = (int)MathHelper.Clamp(l, -1, MaxBars);
+                    l = (int)MathHelper.Clamp(l, -1, MAX_BARS);
                     DrawLevels = l;
                     break;
                 case "/?":
@@ -358,7 +358,7 @@ public class TimeRuler : DrawableGameComponent
         {
             // We skip reset frame when this method gets called multiple times.
             var count = Interlocked.Increment(ref _updateCount);
-            if (Visible && 1 < count && count < MaxSampleFrames)
+            if (Visible && 1 < count && count < MAX_SAMPLE_FRAMES)
                 return;
 
             // Update current frame log.
@@ -414,7 +414,7 @@ public class TimeRuler : DrawableGameComponent
                         m.Logs[barIdx].Avg += duration;
                         m.Logs[barIdx].Avg *= 0.5f;
 
-                        if (m.Logs[barIdx].Samples++ >= LogSnapDuration)
+                        if (m.Logs[barIdx].Samples++ >= LOG_SNAP_DURATION)
                         {
                             m.Logs[barIdx].SnapAvg = m.Logs[barIdx].Avg;
                             m.Logs[barIdx].Samples = 0;
@@ -466,24 +466,23 @@ public class TimeRuler : DrawableGameComponent
     {
         lock (_frameLock)
         {
-            if (barIndex < 0 || barIndex >= MaxBars)
+            if (barIndex < 0 || barIndex >= MAX_BARS)
                 throw new ArgumentOutOfRangeException(nameof(barIndex));
 
             var bar = _curLog.Bars[barIndex];
 
-            if (bar.MarkCount >= MaxSamples)
+            if (bar.MarkCount >= MAX_SAMPLES)
             {
                 throw new OverflowException("Exceeded sample count.\n Either set larger number to TimeRuler.MaxSmpale or lower sample count.");
             }
 
-            if (bar.NestCount >= MaxNestCall)
+            if (bar.NestCount >= MAX_NEST_CALL)
             {
                 throw new OverflowException("Exceeded nest count.\n Either set larget number to TimeRuler.MaxNestCall or lower nest calls.");
             }
 
             // Gets registered marker.
-            int markerId;
-            if (!_markerNameToIdMap.TryGetValue(markerName, out markerId))
+            if (!_markerNameToIdMap.TryGetValue(markerName, out int markerId))
             {
                 // Register this if this marker is not registered.
                 markerId = _markers.Count;
@@ -610,7 +609,7 @@ public class TimeRuler : DrawableGameComponent
         // Reset update count.
         Interlocked.Exchange(ref _updateCount, 0);
 
-        var drawLevels = DrawLevels == -1 ? MaxBars : DrawLevels;
+        var drawLevels = DrawLevels == -1 ? MAX_BARS : DrawLevels;
 
         var spriteBatch = _debugManager.SpriteBatch;
         var font = _debugManager.DebugFont;
@@ -624,7 +623,7 @@ public class TimeRuler : DrawableGameComponent
             var bar = _prevLog.Bars[index];
             if (bar.MarkCount > 0)
             {
-                height += BarHeight + BarPadding * 2;
+                height += BAR_HEIGHT + BAR_PADDING * 2;
                 maxTime = Math.Max(maxTime, bar.Markers[bar.MarkCount - 1].EndTime);
             }
         }
@@ -632,18 +631,18 @@ public class TimeRuler : DrawableGameComponent
         // Auto display frame adjustment.
         // For example, if the entire process of frame doesn't finish in less than 16.6ms
         // thin it will adjust display frame duration as 33.3ms.
-        const float frameSpan = 1.0f / 60.0f * 1000f;
-        var sampleSpan = _sampleFrames * frameSpan;
+        const float FRAME_SPAN = 1.0f / 60.0f * 1000f;
+        var sampleSpan = _sampleFrames * FRAME_SPAN;
 
         if (maxTime > sampleSpan)
             _frameAdjust = Math.Max(0, _frameAdjust) + 1;
         else
             _frameAdjust = Math.Min(0, _frameAdjust) - 1;
 
-        if (Math.Abs(_frameAdjust) > AutoAdjustDelay)
+        if (Math.Abs(_frameAdjust) > AUTO_ADJUST_DELAY)
         {
-            _sampleFrames = Math.Min(MaxSampleFrames, _sampleFrames);
-            _sampleFrames = Math.Max(TargetSampleFrames, (int)(maxTime / frameSpan) + 1);
+            _sampleFrames = Math.Min(MAX_SAMPLE_FRAMES, _sampleFrames);
+            _sampleFrames = Math.Max(TargetSampleFrames, (int)(maxTime / FRAME_SPAN) + 1);
 
             _frameAdjust = 0;
         }
@@ -664,11 +663,11 @@ public class TimeRuler : DrawableGameComponent
         spriteBatch.Draw(texture, rc, DebugSystem.DebugResources.OverlayColor);
 
         // Draw markers for each bars.
-        rc.Height = BarHeight;
+        rc.Height = BAR_HEIGHT;
         for (var index = 0; index < _prevLog.Bars.Length && index < drawLevels; index++)
         {
             var bar = _prevLog.Bars[index];
-            rc.Y = y + BarPadding;
+            rc.Y = y + BAR_PADDING;
             if (bar.MarkCount > 0)
             {
                 for (var j = 0; j < bar.MarkCount; ++j)
@@ -684,7 +683,7 @@ public class TimeRuler : DrawableGameComponent
                 }
             }
 
-            y += BarHeight + BarPadding;
+            y += BAR_HEIGHT + BAR_PADDING;
         }
 
         // Draw grid lines.
@@ -699,7 +698,7 @@ public class TimeRuler : DrawableGameComponent
         // Draw frame grid.
         for (var i = 0; i <= _sampleFrames; ++i)
         {
-            rc.X = (int)(position.X + frameSpan * i * msToPs);
+            rc.X = (int)(position.X + FRAME_SPAN * i * msToPs);
             spriteBatch.Draw(texture, rc, Color.White);
         }
 
@@ -711,16 +710,16 @@ public class TimeRuler : DrawableGameComponent
             _logString.Length = 0;
             foreach (var markerInfo in _markers)
             {
-                for (var i = 0; i < MaxBars && i < drawLevels; ++i)
+                for (var i = 0; i < MAX_BARS && i < drawLevels; ++i)
                 {
                     if (markerInfo.Logs[i].Initialized)
                     {
                         if (_logString.Length > 0)
-                            _logString.Append("\n");
+                            _logString.Append('\n');
 
                         _logString.Append(" Bar ");
                         _logString.AppendNumber(i);
-                        _logString.Append(" ");
+                        _logString.Append(' ');
                         _logString.Append(markerInfo.Name);
 
                         _logString.Append(" Avg.:");
@@ -746,7 +745,7 @@ public class TimeRuler : DrawableGameComponent
             var rc2 = new Rectangle((int)position.X + 5, y + 1, 8, 8);
             foreach (var markerInfo in _markers)
             {
-                for (var i = 0; i < MaxBars && i < drawLevels; ++i)
+                for (var i = 0; i < MAX_BARS && i < drawLevels; ++i)
                 {
                     if (markerInfo.Logs[i].Initialized)
                     {

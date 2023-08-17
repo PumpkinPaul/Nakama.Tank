@@ -8,9 +8,9 @@ namespace NakamaTank.NakamaMultiplayer;
 
 public class PacketReader
 {
-    private readonly Stream _stream;
+    readonly Stream _stream;
 
-    private readonly byte[] _buffer;
+    readonly byte[] _buffer;
 
     public PacketReader(Stream stream)
     {
@@ -23,6 +23,8 @@ public class PacketReader
         _buffer = new byte[16];
         _stream = stream;
     }
+
+    public void Reset() => _stream.Position = 0;
 
     //
     // Summary:

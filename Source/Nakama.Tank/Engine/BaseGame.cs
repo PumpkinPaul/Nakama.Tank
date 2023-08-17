@@ -7,6 +7,7 @@ using NakamaTank.Engine.DebugTools;
 using SpriteFontPlus;
 using System;
 using System.IO;
+using System.Threading;
 
 namespace NakamaTank.Engine;
 
@@ -47,6 +48,8 @@ public abstract class BaseGame : Game
     protected BaseGame()
     {
         Instance = this;
+
+        SynchronizationContext.SetSynchronizationContext(new ConsoleSynchronizationContext());
 
         Graphics = new GraphicsDeviceManager(this);
         Content.RootDirectory = "Content";
@@ -139,6 +142,9 @@ public abstract class BaseGame : Game
     {
         DebugSystem.BeginUpdate();
 
+        ConsoleSynchronizationContext.Update();
+        ConsoleMainThreadDispatcher.Update();
+
         using (new CodeTimer("BaseGame.Update", FlatTheme.PeterRiver))
         {
             // Allows the game to exit
@@ -161,6 +167,14 @@ public abstract class BaseGame : Game
 
     protected virtual void OnUpdate(GameTime gameTime) { }
 
+    /// <summary>
+    /// Checks if the specified button is pressed on either keyboard or gamepad.
+    /// </summary>
+    public bool IsPressed(Keys key, Buttons button)
+    {
+        return (KeyboardState.IsKeyDown(key) && PreviousKeyboardState.IsKeyUp(key)) 
+            || (GamePadState.IsButtonDown(button) && PreviousGamePadState.IsButtonUp(button));
+    }
 
     /// <summary>
     /// This is called when the game should draw itself.

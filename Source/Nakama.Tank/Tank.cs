@@ -138,25 +138,6 @@ public class Tank
     }
 
     /// <summary>
-    /// Writes our local tank state into a 'network packet'.
-    /// </summary>
-    public void WriteNetworkPacketJson(GameTime gameTime, out string packet)
-    {
-        packet = MatchDataJson.TankPacket(
-            // Send our current time.
-            (float)gameTime.TotalGameTime.TotalSeconds,
-            // Send the current state of the tank.
-            _simulationState.Position,
-            _simulationState.Velocity,
-            _simulationState.TankRotation,
-            _simulationState.TurretRotation,
-            // Also send our current inputs. These can be used to more accurately
-            // predict how the tank is likely to move in the future.
-            _tankInput,
-            _turretInput);
-    }
-
-    /// <summary>
     /// Writes our local tank state into a network packet.
     /// </summary>
     public void WriteNetworkPacket(GameTime gameTime, PacketWriter packetWriter)
@@ -181,7 +162,7 @@ public class Tank
     /// </summary>
     public void ReadNetworkPacketEvent(
         GameTime gameTime,
-        ReceivedRemotePlayerTankStateEventArgs packetReader,
+        ReceivedRemotePlayerTankStateEventArgs tankPacket,
         TimeSpan latency,
         bool enablePrediction,
         bool enableSmoothing)
@@ -199,60 +180,17 @@ public class Tank
         }
 
         // Read what time this packet was sent.
-        float packetSendTime = packetReader.TotalSeconds;
+        float packetSendTime = tankPacket.TotalSeconds;
 
         // Read simulation state from the network packet.
-        _simulationState.Position = packetReader.Position;
-        _simulationState.Velocity = packetReader.Velocity;
-        _simulationState.TankRotation = packetReader.TankRotation;
-        _simulationState.TurretRotation = packetReader.TurretRotation;
+        _simulationState.Position = tankPacket.Position;
+        _simulationState.Velocity = tankPacket.Velocity;
+        _simulationState.TankRotation = tankPacket.TankRotation;
+        _simulationState.TurretRotation = tankPacket.TurretRotation;
 
         // Read remote inputs from the network packet.
-        _tankInput = packetReader.TankInput;
-        _turretInput = packetReader.TurretInput;
-
-        // Optionally apply prediction to compensate for
-        // how long it took this packet to reach us.
-        if (enablePrediction)
-        {
-            ApplyPrediction(gameTime, latency, packetSendTime);
-        }
-    }
-
-    /// <summary>
-    /// Reads the state of a remotely controlled tank from a network packet.
-    /// </summary>
-    public void ReadNetworkPacket(
-        GameTime gameTime,
-        PacketReader packetReader,
-        TimeSpan latency,
-        bool enablePrediction, 
-        bool enableSmoothing)
-    {
-        if (enableSmoothing)
-        {
-            // Start a new smoothing interpolation from our current
-            // state toward this new state we just received.
-            _previousState = _displayState;
-            _currentSmoothing = 1;
-        }
-        else
-        {
-            _currentSmoothing = 0;
-        }
-
-        // Read what time this packet was sent.
-        float packetSendTime = packetReader.ReadSingle();
-
-        // Read simulation state from the network packet.
-        _simulationState.Position = packetReader.ReadVector2();
-        _simulationState.Velocity = packetReader.ReadVector2();
-        _simulationState.TankRotation = packetReader.ReadSingle();
-        _simulationState.TurretRotation = packetReader.ReadSingle();
-
-        // Read remote inputs from the network packet.
-        _tankInput = packetReader.ReadVector2();
-        _turretInput = packetReader.ReadVector2();
+        _tankInput = tankPacket.TankInput;
+        _turretInput = tankPacket.TurretInput;
 
         // Optionally apply prediction to compensate for
         // how long it took this packet to reach us.

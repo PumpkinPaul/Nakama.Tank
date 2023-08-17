@@ -8,13 +8,13 @@ namespace NakamaTank.NakamaMultiplayer;
 
 public class PacketWriter
 {
-    private readonly Stream _outputStream;
+    private readonly MemoryStream _outputStream;
     private readonly byte[] _buffer; // temp space for writing to.
 
-    public PacketWriter(Stream stream)
+    public PacketWriter(MemoryStream stream)
     {
         if (stream == null)
-            throw new ArgumentNullException("output");
+            throw new ArgumentNullException(nameof(stream));
 
         if (!stream.CanWrite)
             throw new ArgumentException("The stream is not writable");
@@ -22,6 +22,11 @@ public class PacketWriter
         _outputStream = stream;
         _buffer = new byte[16];
     }
+
+    //TODO: make this readonly memory or span!
+    public byte[] GetBuffer() => _outputStream.GetBuffer();
+
+    public void Reset() => _outputStream.Position = 0;
 
     // Writes a boolean to this stream. A single byte is written to the stream
     // with the value 0 representing false or the value 1 representing true.

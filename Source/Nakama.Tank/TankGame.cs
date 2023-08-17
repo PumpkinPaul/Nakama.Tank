@@ -52,11 +52,11 @@ public class TankGame : BaseGame
     {
         base.Initialize();
 
-        await _networkGameManager.Connect();
-        _nakamaConnection.Socket.ReceivedMatchmakerMatched += OnReceivedMatchmakerMatched;
-
         GamePhaseManager.Initialise();
         GamePhaseManager.ChangePhase<MainMenuPhase>();
+
+        await _networkGameManager.Connect();
+        _nakamaConnection.Socket.ReceivedMatchmakerMatched += OnReceivedMatchmakerMatched;
     }
 
     /// <summary>

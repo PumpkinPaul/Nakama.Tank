@@ -9,8 +9,12 @@ using NakamaTank.NakamaMultiplayer.Players;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NakamaTank.NakamaMultiplayer;
@@ -32,7 +36,8 @@ public record ReceivedRemotePlayerTankStateEventArgs(
 );
 
 public record RemovedPlayerEventArgs(
-    string SessionId
+    string SessionId,
+    Player Player
 );
 
 /// <summary>
@@ -69,9 +74,16 @@ public class NetworkGameManager
     {
         await _nakamaConnection.Connect();
 
-        _nakamaConnection.Socket.ReceivedMatchmakerMatched += OnReceivedMatchmakerMatched;
-        _nakamaConnection.Socket.ReceivedMatchPresence += OnReceivedMatchPresence;
-        _nakamaConnection.Socket.ReceivedMatchState += OnReceivedMatchState;
+        // Bounce events to resolve on main thread - makes things simpler while introducing a _bit_ of latency.
+
+        _nakamaConnection.Socket.ReceivedMatchmakerMatched += matched => 
+            ConsoleMainThreadDispatcher.Enqueue(() => OnReceivedMatchmakerMatched(matched));        
+
+        _nakamaConnection.Socket.ReceivedMatchPresence += matchPresenceEvent =>
+            ConsoleMainThreadDispatcher.Enqueue(() => OnReceivedMatchPresence(matchPresenceEvent));
+
+        _nakamaConnection.Socket.ReceivedMatchState += matchState =>
+            ConsoleMainThreadDispatcher.Enqueue(() => OnReceivedMatchState(matchState));
     }
 
     /// <summary>
@@ -126,8 +138,6 @@ public class NetworkGameManager
     /// <param name="matchState">The MatchState data.</param>
     public void OnReceivedMatchState(IMatchState matchState)
     {
-        Logger.WriteLine($"OnReceivedMatchState: {matchState.OpCode}");
-
         if (!Players.TryGetValue(matchState.UserPresence.SessionId, out var player))
             return;
 
@@ -140,6 +150,7 @@ public class NetworkGameManager
         switch (matchState.OpCode)
         {
             case OpCodes.TANK_PACKET:
+                //UpdateTankStateFromState(matchState.State, networkPlayer);
                 UpdateTankStateFromState(matchState.State, networkPlayer);
                 break;
 
@@ -214,12 +225,12 @@ public class NetworkGameManager
 
     void RemovePlayer(string sessionId)
     {
-        if (!Players.ContainsKey(sessionId))
+        if (!Players.TryGetValue(sessionId, out var player))
             return;
 
         Players.Remove(sessionId);
 
-        RemovedPlayer?.Invoke(this, new RemovedPlayerEventArgs(sessionId));
+        RemovedPlayer?.Invoke(this, new RemovedPlayerEventArgs(sessionId, player));
     }
 
     /// <summary>
@@ -228,28 +239,19 @@ public class NetworkGameManager
     /// <param name="state">The incoming state byte array.</param>
     private void UpdateTankStateFromState(byte[] state, RemotePlayer networkPlayer)
     {
-        var stateDictionary = GetStateAsDictionary(state);
+        //TODO: fix the allocation here
+        var packetReader = new PacketReader(new MemoryStream(state));
+        
+        var totalSeconds = packetReader.ReadSingle();
 
-        var totalSeconds = float.Parse(stateDictionary["totalSeconds"]);
+        var position = packetReader.ReadVector2();
+        var velocity = packetReader.ReadVector2();
 
-        var position = new Vector2(
-            float.Parse(stateDictionary["position.x"]),
-            float.Parse(stateDictionary["position.y"]));
+        var tankRotation = packetReader.ReadSingle();
+        var turretRotation = packetReader.ReadSingle();
 
-        var velocity = new Vector2(
-            float.Parse(stateDictionary["velocity.x"]),
-            float.Parse(stateDictionary["velocity.y"]));
-
-        var tankRotation = float.Parse(stateDictionary["tankRotation"]);
-        var turretRotation = float.Parse(stateDictionary["turretRotation"]);
-
-        var tankInput = new Vector2(
-            float.Parse(stateDictionary["tankInput.x"]),
-            float.Parse(stateDictionary["tankInput.y"]));
-
-        var turretInput = new Vector2(
-            float.Parse(stateDictionary["turretInput.x"]),
-            float.Parse(stateDictionary["turretInput.y"]));
+        var tankInput = packetReader.ReadVector2();
+        var turretInput = packetReader.ReadVector2();
 
         ReceivedRemotePlayerTasnkState?.Invoke(
             this,
@@ -290,6 +292,16 @@ public class NetworkGameManager
     /// <param name="opCode">The operation code.</param>
     /// <param name="state">The stringified JSON state data.</param>
     public void SendMatchState(long opCode, string state)
+    {
+        _nakamaConnection.Socket.SendMatchStateAsync(_currentMatch.Id, opCode, state);
+    }
+
+    /// <summary>
+    /// Sends a match state message across the network.
+    /// </summary>
+    /// <param name="opCode">The operation code.</param>
+    /// <param name="state">The stringified JSON state data.</param>
+    public void SendMatchState(long opCode, byte[] state)
     {
         _nakamaConnection.Socket.SendMatchStateAsync(_currentMatch.Id, opCode, state);
     }
