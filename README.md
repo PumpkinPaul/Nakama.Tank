@@ -17,6 +17,15 @@ Implemented using a Client Relayed Multiplayer approach using [Nakama](https://h
 
 > This project shows how to use prediction and smoothing algorithms to compensate for network lag. This makes remotely controlled objects appear to move smoothly even when there is a significant delay in packets being delivered over the network. 
 
+## Getting Started
+
+Install Nakama - 
+The easiest way to do this is to follow the [Install](https://heroiclabs.com/docs/nakama/getting-started/install/) documentation on the Nakama webite.
+
+Clone the source code and build the app - all dependencies should be included in the project.
+
+You should then be able to launch two instances of the game to test locally.
+
 ## Credits
 
 Inspired by:

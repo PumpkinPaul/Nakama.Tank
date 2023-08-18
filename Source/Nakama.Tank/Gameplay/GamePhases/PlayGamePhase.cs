@@ -91,9 +91,7 @@ public class PlayGamePhase : GamePhase
         if (BaseGame.Instance.KeyboardState.IsKeyDown(Keys.Space) && BaseGame.Instance.PreviousKeyboardState.IsKeyUp(Keys.Space))
             await QuitMatch();
 
-        //TODO: wait for both players!
-        if (_tanks.Count == 2)
-             UpdateNetworkSession(gameTime);
+        UpdateNetworkSession(gameTime);
     }
 
     void UpdateNetworkSession(GameTime gameTime)
@@ -168,8 +166,6 @@ public class PlayGamePhase : GamePhase
         // Periodically send our state to everyone in the session.
         if (sendPacketThisFrame)
         {
-            //tank.WriteNetworkPacketJson(gameTime, out var packet);
-
             _packetWriter.Reset();
             tank.WriteNetworkPacket(gameTime, _packetWriter);
 

@@ -190,7 +190,7 @@ public class Tank
 
         // Read remote inputs from the network packet.
         _tankInput = tankPacket.TankInput;
-        _turretInput = tankPacket.TurretInput;
+        _turretInput = tankPacket.TurretInput; 
 
         // Optionally apply prediction to compensate for
         // how long it took this packet to reach us.
