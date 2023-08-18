@@ -46,7 +46,7 @@ public class PlayGamePhase : GamePhase
     {
         Typical,    // 100 ms latency, 10% packet loss
         Poor,       // 200 ms latency, 20% packet loss
-        Perfect,    // 0 latency, 0% packet loss
+        Perfect,    //   0 ms latency,  0% packet loss
     }
 
     NetworkQuality _networkQuality;
@@ -119,22 +119,6 @@ public class PlayGamePhase : GamePhase
         foreach (var player in localPlayers)
             UpdateLocalGamer(player, gameTime, sendPacketThisFrame);
 
-        // Pump the underlying session object.
-        try
-        {
-            //networkSession.Update();
-        }
-        catch (Exception e)
-        {
-            //errorMessage = e.Message;
-            //networkSession.Dispose();
-            //networkSession = null;
-        }
-
-        // Make sure the session has not ended.
-        //if (networkSession == null)
-        //    return;
-
         // Read any packets telling us the state of remotely controlled tanks.
         foreach (var player in remotePlayers)
             ReadIncomingPackets(player, gameTime);
@@ -187,7 +171,7 @@ public class PlayGamePhase : GamePhase
             Tank tank = _tanks[player];
 
             // Estimate how long this packet took to arrive.
-            //TODO! latency!!!
+            //TODO! figure out how to do latency simulation using Nakama.
             //TimeSpan latency = networkSession.SimulatedLatency + TimeSpan.FromTicks(sender.RoundtripTime.Ticks / 2);
             var latency = TimeSpan.FromSeconds(1 / 20.0f);
 

@@ -5,7 +5,6 @@ using Microsoft.Xna.Framework.Graphics;
 using NakamaTank.Engine;
 using NakamaTank.Engine.Extensions;
 using NakamaTank.NakamaMultiplayer;
-using NakamaTank.NakamaMultiplayer.Players;
 using System;
 
 namespace NakamaTank;
@@ -83,8 +82,8 @@ public class Tank
     /// </summary>
     public void UpdateLocal(Vector2 tankInput, Vector2 turretInput)
     {
-        this._tankInput = tankInput;
-        this._turretInput = turretInput;
+        _tankInput = tankInput;
+        _turretInput = turretInput;
 
         // Update the master simulation state.
         UpdateState(ref _simulationState);
