@@ -6,15 +6,10 @@ using Microsoft.Xna.Framework;
 using Nakama;
 using NakamaTank.Engine;
 using NakamaTank.NakamaMultiplayer.Players;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace NakamaTank.NakamaMultiplayer;
@@ -150,7 +145,6 @@ public class NetworkGameManager
         switch (matchState.OpCode)
         {
             case OpCodes.TANK_PACKET:
-                //UpdateTankStateFromState(matchState.State, networkPlayer);
                 UpdateTankStateFromState(matchState.State, networkPlayer);
                 break;
 
@@ -264,36 +258,6 @@ public class NetworkGameManager
                 tankInput,
                 turretInput,
                 networkPlayer.NetworkData.User.SessionId));
-    }
-
-    /// <summary>
-    /// Converts a byte array of a UTF8 encoded JSON string into a Dictionary.
-    /// </summary>
-    /// <param name="state">The incoming state byte array.</param>
-    /// <returns>A Dictionary containing state data as strings.</returns>
-    static IDictionary<string, string> GetStateAsDictionary(byte[] state)
-    {
-        return JsonConvert.DeserializeObject<Dictionary<string, string>>(Encoding.UTF8.GetString(state));
-    }
-
-    /// <summary>
-    /// Sends a match state message across the network.
-    /// </summary>
-    /// <param name="opCode">The operation code.</param>
-    /// <param name="state">The stringified JSON state data.</param>
-    public async Task SendMatchStateAsync(long opCode, string state)
-    {
-        await _nakamaConnection.Socket.SendMatchStateAsync(_currentMatch.Id, opCode, state);
-    }
-
-    /// <summary>
-    /// Sends a match state message across the network.
-    /// </summary>
-    /// <param name="opCode">The operation code.</param>
-    /// <param name="state">The stringified JSON state data.</param>
-    public void SendMatchState(long opCode, string state)
-    {
-        _nakamaConnection.Socket.SendMatchStateAsync(_currentMatch.Id, opCode, state);
     }
 
     /// <summary>
